@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Word Leveler Mobile Home</title>
+    <style>
+      :root {
+        --bg: #1f1f1f;
+        --panel: #2b2b2b;
+        --line: #474747;
+        --ink: #f2f2f2;
+        --muted: #b8b8b8;
+        --brand: #69a7ff;
+        --brand-strong: #3f82ee;
+        --shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100svh;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      }
+
+      main {
+        width: min(920px, 100%);
+        margin: 0 auto;
+        padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+      }
+
+      .topline {
+        margin: 0 0 10px;
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: clamp(30px, 7vw, 52px);
+        line-height: 1.02;
+      }
+
+      .intro {
+        margin: 0 0 24px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      a.tile {
+        display: block;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        color: inherit;
+        text-decoration: none;
+        box-shadow: var(--shadow);
+      }
+
+      a.tile:hover {
+        border-color: var(--brand);
+        transform: translateY(-1px);
+      }
+
+      .eyebrow {
+        margin: 0 0 8px;
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .title {
+        margin: 0 0 6px;
+        font-size: 22px;
+        font-weight: 900;
+      }
+
+      .desc {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .footer {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 700px) {
+        .grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="topline">Word Leveler Mobile</p>
+      <h1>아이폰 단어장 홈</h1>
+      <p class="intro">자주 쓰는 페이지들만 모아뒀어. 아이폰에서는 이 화면 하나만 즐겨찾기해두고, 필요한 단어장으로 바로 들어가면 돼.</p>
+
+      <section class="grid">
+        <a class="tile" href="./iphone.html">
+          <p class="eyebrow">Main</p>
+          <h2 class="title">메인 단어장</h2>
+          <p class="desc">PC에서 주로 쓰는 메인 아이폰 복습본.</p>
+        </a>
+
+        <a class="tile" href="./pattern_app.html">
+          <p class="eyebrow">Patterns</p>
+          <h2 class="title">패턴 단어장</h2>
+          <p class="desc">패턴만 모아둔 전용 복습 페이지.</p>
+        </a>
+
+        <a class="tile" href="./tense.html">
+          <p class="eyebrow">Tense</p>
+          <h2 class="title">시제 문장 125</h2>
+          <p class="desc">시제 예문 중심으로 익히는 전용 단어장.</p>
+        </a>
+
+        <a class="tile" href="./tense_core_patterns.html">
+          <p class="eyebrow">Tense Core</p>
+          <h2 class="title">시제 핵심 패턴 25</h2>
+          <p class="desc">시제 골격만 빠르게 잡는 핵심 패턴 페이지.</p>
+        </a>
+
+        <a class="tile" href="./useful_expressions.html">
+          <p class="eyebrow">Expressions</p>
+          <h2 class="title">유용 표현 587</h2>
+          <p class="desc">네가 붙여준 11~600 구간 기준으로 정리한 표현 모음.</p>
+        </a>
+      </section>
+
+      <p class="footer">GitHub Pages에서는 이 파일을 <code>index.html</code>로 올리면 첫 화면으로 바로 쓸 수 있어.</p>
+    </main>
+  </body>
+</html>

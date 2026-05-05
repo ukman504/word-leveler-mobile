@@ -1,0 +1,4098 @@
+﻿<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Pattern Leveler Mobile</title>
+    <style>
+      :root {
+        --bg: #1f1f1f;
+        --panel: #2b2b2b;
+        --panel-soft: #333333;
+        --line: #474747;
+        --ink: #f2f2f2;
+        --muted: #b8b8b8;
+        --brand: #69a7ff;
+        --brand-strong: #3f82ee;
+        --good: #53b77b;
+        --bad: #e15454;
+        --shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+        margin: 0;
+        min-height: 100svh;
+      }
+
+      body.study-locked {
+        height: 100svh;
+        overflow: hidden;
+        overscroll-behavior: none;
+      }
+
+      button, input, select { font: inherit; }
+
+      button {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel-soft);
+        color: var(--ink);
+        font-weight: 800;
+        min-height: 48px;
+        padding: 12px 14px;
+      }
+
+      button.primary { background: var(--brand-strong); border-color: var(--brand-strong); }
+      button.good { background: var(--good); border-color: var(--good); }
+      button.bad { background: var(--bad); border-color: var(--bad); }
+      button:disabled { opacity: .42; }
+
+      input, select {
+        background: #191919;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--ink);
+        min-height: 44px;
+        padding: 10px;
+        width: 100%;
+      }
+
+      .app {
+        margin: 0 auto;
+        max-width: 760px;
+        min-height: 100svh;
+        padding: max(18px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom));
+      }
+
+      body.study-locked .app {
+        height: 100svh;
+        overflow: hidden;
+      }
+
+      .view { display: none; }
+      .view.active { display: block; }
+
+      .topline {
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+      }
+
+      h1, h2 { margin: 6px 0 14px; }
+      h1 { font-size: 32px; line-height: 1.05; }
+      p { line-height: 1.5; }
+
+      .panel, .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        padding: 16px;
+      }
+
+      .stack { display: grid; gap: 12px; }
+      .grid-2 { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+      .grid-3 { display: grid; gap: 10px; grid-template-columns: repeat(3, 1fr); }
+      .muted { color: var(--muted); }
+      .small { font-size: 13px; }
+
+      .level-grid {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .level-grid label {
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        min-height: 52px;
+        padding: 0 10px;
+      }
+
+      .level-grid input {
+        -webkit-appearance: checkbox;
+        appearance: auto;
+        block-size: 20px;
+        flex: 0 0 auto;
+        inline-size: 20px;
+        margin: 0;
+        min-height: 0;
+        min-width: 20px;
+        padding: 0;
+        width: 20px;
+      }
+
+      .level-grid span {
+        flex: 0 1 auto;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .toolbar {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .stats-grid {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .stat-card {
+        background: #252525;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+      }
+
+      .stat-card strong {
+        display: block;
+        font-size: 12px;
+        margin-bottom: 6px;
+      }
+
+      .stat-card span {
+        display: block;
+        font-size: 26px;
+        font-weight: 900;
+      }
+
+      .distribution {
+        display: grid;
+        gap: 8px;
+      }
+
+      .distribution-row {
+        align-items: center;
+        display: grid;
+        gap: 8px;
+        grid-template-columns: 58px minmax(0, 1fr) 40px;
+      }
+
+      .distribution-row label,
+      .distribution-row .count {
+        font-size: 13px;
+      }
+
+      .distribution-bar {
+        background: #202020;
+        border-radius: 999px;
+        height: 8px;
+        overflow: hidden;
+      }
+
+      .distribution-fill {
+        background: var(--brand);
+        border-radius: 999px;
+        height: 100%;
+        width: 0;
+      }
+
+      .study-card {
+        display: grid;
+        gap: 14px;
+        grid-template-rows: auto auto minmax(280px, 1fr) auto auto;
+        min-height: min(760px, calc(100svh - 34px));
+        padding: 18px;
+        touch-action: pan-x;
+      }
+
+      .hint-toggle-area {
+        display: grid;
+        gap: 14px;
+      }
+
+      .meta {
+        color: var(--muted);
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 14px;
+      }
+
+      #frontText {
+        align-items: center;
+        display: flex;
+        font-weight: 900;
+        justify-content: center;
+        line-height: 1.16;
+        margin: 18px auto 0;
+        max-width: 92%;
+        min-height: clamp(250px, 33svh, 340px);
+        overflow-wrap: anywhere;
+        padding: 0 4px;
+        text-align: center;
+        word-break: keep-all;
+      }
+
+      .font-small #frontText { font-size: 34px; }
+      .font-medium #frontText { font-size: 44px; }
+      .font-large #frontText { font-size: 54px; }
+      .font-xlarge #frontText { font-size: 64px; }
+
+      .answer {
+        background: var(--panel-soft);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        display: grid;
+        gap: 12px;
+        height: clamp(210px, 26svh, 280px);
+        overflow: auto;
+        padding: 14px;
+      }
+
+      .answer.is-collapsed > * {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .answer.is-collapsed {
+        overflow: hidden;
+      }
+      .label { color: var(--muted); display: block; font-size: 12px; font-weight: 900; margin-bottom: 4px; }
+      .answer p { margin: 0; white-space: pre-wrap; }
+
+      .action-area {
+        padding-bottom: max(8px, env(safe-area-inset-bottom));
+      }
+
+      #studyView {
+        min-height: calc(100svh - max(18px, env(safe-area-inset-top)) - max(18px, env(safe-area-inset-bottom)));
+      }
+
+      body.study-locked #studyView {
+        height: calc(100svh - max(18px, env(safe-area-inset-top)) - max(18px, env(safe-area-inset-bottom)));
+        overflow: hidden;
+      }
+
+      .main-actions {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .sub-actions {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(3, 1fr);
+        margin-top: 10px;
+      }
+
+      .result-number {
+        font-size: 38px;
+        font-weight: 900;
+        margin: 0;
+      }
+
+      @media (max-width: 430px) {
+        h1 { font-size: 28px; }
+        .stats-grid { grid-template-columns: 1fr; }
+        .study-card { gap: 12px; min-height: min(720px, calc(100svh - 30px)); }
+        #frontText { min-height: clamp(180px, 26svh, 240px); }
+        .font-medium #frontText { font-size: 38px; }
+        .font-large #frontText { font-size: 44px; }
+        .font-xlarge #frontText { font-size: 50px; }
+        .grid-3 { grid-template-columns: 1fr; }
+      }
+
+      @media (min-height: 850px) and (max-width: 480px) {
+        .study-card { min-height: min(780px, calc(100svh - 42px)); }
+        #frontText { min-height: clamp(200px, 27svh, 280px); }
+      }
+
+      @media (max-width: 430px) and (min-width: 390px) {
+        .level-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .answer {
+          height: 240px;
+        }
+      }
+
+      @media (max-width: 389px) {
+        .level-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <section id="setupView" class="view active">
+        <p class="topline">Pattern Leveler Mobile</p>
+        <h1>아이폰 패턴 단어장</h1>
+        <p class="muted small">2026-05-05 00:00 기준 · 내장 단어 <strong id="totalCount">0</strong>개</p>
+
+        <div class="stack">
+          <div class="panel stack">
+            <strong>현황판</strong>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <strong>총 단어</strong>
+                <span id="statTotal">0</span>
+              </div>
+              <div class="stat-card">
+                <strong>Level 5</strong>
+                <span id="statLevel5">0</span>
+              </div>
+              <div class="stat-card">
+                <strong>오늘 복습</strong>
+                <span id="statToday">0</span>
+              </div>
+            </div>
+            <div id="distribution" class="distribution"></div>
+          </div>
+
+          <div class="panel stack">
+            <strong>학습할 레벨</strong>
+            <div id="levelChecks" class="level-grid"></div>
+          </div>
+
+          <div class="panel stack">
+            <label><strong>한 번에 볼 개수</strong><input id="studyCount" type="number" min="1" value="30" /></label>
+          </div>
+
+          <div class="panel stack">
+            <label><strong>학습 구간</strong><select id="rangeSelect"></select></label>
+          </div>
+
+          <div class="panel stack">
+            <label><strong>출제 방식</strong><select id="order"><option value="csv">CSV 순서</option><option value="random" selected>랜덤</option><option value="low">낮은 레벨 우선</option><option value="high">높은 레벨 우선</option></select></label>
+            <label><strong>문제 방향</strong><select id="direction"><option value="wordToMeaning">영어 → 한글</option><option value="meaningToWord" selected>한글 → 영어</option></select></label>
+            <label><strong>글씨 크기</strong><select id="fontSize"><option value="small">작게</option><option value="medium" selected>보통</option><option value="large">크게</option><option value="xlarge">아주 크게</option></select></label>
+          </div>
+
+          <div class="panel toolbar">
+            <span id="eligibleCount">출제 가능: 0개</span>
+            <button id="startBtn" class="primary" type="button">학습 시작</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="studyView" class="view">
+        <article id="studyCard" class="card study-card font-medium">
+          <div class="toolbar">
+            <button id="homeBtn" type="button">홈</button>
+            <span id="progress">0 / 0</span>
+          </div>
+          <div class="meta"><span id="levelText">Level 0 / 5</span><span id="sessionText">정답 0 · 오답 0</span></div>
+          <div id="hintToggleArea" class="hint-toggle-area">
+          <div id="frontText">word</div>
+
+          <div id="answerBox" class="answer is-collapsed">
+            <div><span id="answerLabel" class="label">뜻</span><p id="answerText"></p></div>
+            <div id="literalBlock"><span class="label">직역</span><p id="literalText"></p></div>
+            <div id="tagBlock"><span class="label">태그</span><p id="tagText"></p></div>
+            <div id="exampleBlock"><span class="label">예문</span><p id="exampleText"></p></div>
+            <div id="memoBlock"><span class="label">메모</span><p id="memoText"></p></div>
+          </div>
+          </div>
+
+          <div class="action-area">
+            <div class="main-actions">
+              <button id="knownBtn" class="good" type="button">정답</button>
+              <button id="unknownBtn" class="bad" type="button">오답</button>
+            </div>
+            <div class="sub-actions">
+              <button id="hintBtn" type="button">힌트</button>
+              <button id="prevBtn" type="button">이전</button>
+              <button id="nextBtn" type="button">다음</button>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section id="resultView" class="view">
+        <p class="topline">Study Complete</p>
+        <h1>오늘 복습 끝</h1>
+        <div class="panel stack">
+          <p class="result-number" id="resultTotal">0개</p>
+          <p id="resultSummary" class="muted"></p>
+          <button id="againBtn" class="primary" type="button">다시 하기</button>
+          <button id="resultHomeBtn" type="button">홈</button>
+        </div>
+      </section>
+    </main>
+
+    <script id="word-data" type="application/json">[
+    {
+        "word":  "All I need is...",
+        "meaning":  "내게 필요한 건 오직 ~이에요.(현실적 필요)",
+        "literal":  "내게 필요한 건 오직 ~이에요.(현실적 필요)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Are you done with...?",
+        "meaning":  "~은 끝냈어요?",
+        "literal":  "~은 끝냈어요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Are you going to...?",
+        "meaning":  "~할 거예요?(예정)",
+        "literal":  "~할 거예요?(예정)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Are you happy with...?",
+        "meaning":  "~에 만족해요?",
+        "literal":  "~에 만족해요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Are you interested in + ing/명사...?",
+        "meaning":  "~에 관심이 있나요?",
+        "literal":  "~에 관심이 있나요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Are you ready to + 동사 / for + 명사...?",
+        "meaning":  "~할 준비는 됐나요?",
+        "literal":  "~할 준비는 됐나요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Are you saying that...?",
+        "meaning":  "~라는 말인가요?",
+        "literal":  "~라는 말인가요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Are you sure that...?",
+        "meaning":  "~이 확실해요?(확신)",
+        "literal":  "~이 확실해요?(확신)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Can I ask you to...?",
+        "meaning":  "~을 부탁해도 될까요?",
+        "literal":  "~을 부탁해도 될까요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Can I get you...?",
+        "meaning":  "~을 가져다 드릴까요?",
+        "literal":  "~을 가져다 드릴까요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Can I have...?",
+        "meaning":  "~해 주시겠어요? / ~해도 될까요?",
+        "literal":  "~해 주시겠어요? / ~해도 될까요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Can I take...?",
+        "meaning":  "~해도 될까요? / ~해 드릴까요?",
+        "literal":  "~해도 될까요? / ~해 드릴까요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Can you bring...?",
+        "meaning":  "~을 가져올 수 있나요?",
+        "literal":  "~을 가져올 수 있나요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Can you explain why...?",
+        "meaning":  "왜 ~인지 설명해 줄래요?",
+        "literal":  "왜 ~인지 설명해 줄래요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Can you get me...?",
+        "meaning":  "~좀 가져다 줄래요?",
+        "literal":  "~좀 가져다 줄래요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Can you give me...?",
+        "meaning":  "~좀 줄래요?",
+        "literal":  "~좀 줄래요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Can you help me...?",
+        "meaning":  "~좀 도와줄래요?",
+        "literal":  "~좀 도와줄래요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Can you show me...?",
+        "meaning":  "~좀 보여/알려 줄래요?",
+        "literal":  "~좀 보여/알려 줄래요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Can you tell me...?",
+        "meaning":  "~알려 줄래요?",
+        "literal":  "~알려 줄래요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Do I have to...?",
+        "meaning":  "~해야 하나요?(강제)",
+        "literal":  "~해야 하나요?(강제)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Do you feel like...?",
+        "meaning":  "~하고 싶어요?(직감)(선호)",
+        "literal":  "~하고 싶어요?(직감)(선호)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Do you have any...?",
+        "meaning":  "~이 있나요?",
+        "literal":  "~이 있나요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Do you know how...?",
+        "meaning":  "어떻게 ~하는지 아세요?",
+        "literal":  "어떻게 ~하는지 아세요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Do you know what...?",
+        "meaning":  "~이 뭔지 아세요?",
+        "literal":  "~이 뭔지 아세요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Do you mean...?",
+        "meaning":  "~라는 말이에요?",
+        "literal":  "~라는 말이에요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Do you mind if I...?",
+        "meaning":  "제가 ~해도 괜찮을까요?(수용)",
+        "literal":  "제가 ~해도 괜찮을까요?(수용)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Do you think...?",
+        "meaning":  "~라고 생각해요?(판단)",
+        "literal":  "~라고 생각해요?(판단)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Do you want me to...?",
+        "meaning":  "내가 ~해 줄까요?(욕구)",
+        "literal":  "내가 ~해 줄까요?(욕구)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Do you want...?",
+        "meaning":  "~하시겠어요?(욕구)",
+        "literal":  "~하시겠어요?(욕구)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Don\u0027t be afraid to...",
+        "meaning":  "~하는 것을 겁내지 마.",
+        "literal":  "~하는 것을 겁내지 마.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Don\u0027t be so...",
+        "meaning":  "너무 ~하지 마.",
+        "literal":  "너무 ~하지 마.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Don\u0027t even think about...",
+        "meaning":  "~은 생각도 하지 마.(판단)",
+        "literal":  "~은 생각도 하지 마.(판단)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Don\u0027t forget to...",
+        "meaning":  "~하는 거 잊지 마.",
+        "literal":  "~하는 거 잊지 마.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Don\u0027t tell me...",
+        "meaning":  "설마 ~은 아니겠지.(그 말 하지 마-\u003e그게 사실이면 싫다)",
+        "literal":  "설마 ~은 아니겠지.(그 말 하지 마-\u003e그게 사실이면 싫다)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Feel free to...",
+        "meaning":  "얼마든지 ~하세요.(직감)",
+        "literal":  "얼마든지 ~하세요.(직감)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Have you ever been...?",
+        "meaning":  "~해 본 적 있어요?",
+        "literal":  "~해 본 적 있어요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Have you heard...?",
+        "meaning":  "~을 들었어요?",
+        "literal":  "~을 들었어요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Have you seen...?",
+        "meaning":  "~을 봤어요?",
+        "literal":  "~을 봤어요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "He cares about...",
+        "meaning":  "그는 ~에 신경 써요.",
+        "literal":  "그는 ~에 신경 써요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How about...?",
+        "meaning":  "~하는 건 어때?(가볍게 제안)",
+        "literal":  "~하는 건 어때?(가볍게 제안)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How could you...?",
+        "meaning":  "어떻게 ~할 수 있어요?",
+        "literal":  "어떻게 ~할 수 있어요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How dare you...!",
+        "meaning":  "어떻게 감히 ~해!",
+        "literal":  "어떻게 감히 ~해!",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How did ... go?",
+        "meaning":  "~은 어떻게 됐어요?",
+        "literal":  "~은 어떻게 됐어요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How do I know...?",
+        "meaning":  "~을 내가 어떻게 알아요?",
+        "literal":  "~을 내가 어떻게 알아요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How do you feel about...?",
+        "meaning":  "~에 대한 느낌이 어때요?(직감)",
+        "literal":  "~에 대한 느낌이 어때요?(직감)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How do you know...?",
+        "meaning":  "~을 어떻게 알죠?",
+        "literal":  "~을 어떻게 알죠?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How do you like...?",
+        "meaning":  "~해보니까 어때?(경험 후 평가)",
+        "literal":  "~해보니까 어때?(경험 후 평가)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How far...?",
+        "meaning":  "얼마나 멀어요?",
+        "literal":  "얼마나 멀어요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How long does it take...?",
+        "meaning":  "~하는 데 얼마나 걸려요?",
+        "literal":  "~하는 데 얼마나 걸려요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How long have you been...?",
+        "meaning":  "~한 지 얼마나 됐나요?",
+        "literal":  "~한 지 얼마나 됐나요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How long will you...?",
+        "meaning":  "얼마 동안 ~할 거예요?",
+        "literal":  "얼마 동안 ~할 거예요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How many times do I have to...?",
+        "meaning":  "몇 번이나 ~해야 돼요?(강제)",
+        "literal":  "몇 번이나 ~해야 돼요?(강제)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How much does it cost...?",
+        "meaning":  "~에 얼마가 드나요?",
+        "literal":  "~에 얼마가 드나요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How often do you...?",
+        "meaning":  "얼마나 자주 ~해요?",
+        "literal":  "얼마나 자주 ~해요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How soon can...?",
+        "meaning":  "얼마나 빨리 ~할 수 있나요?",
+        "literal":  "얼마나 빨리 ~할 수 있나요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How was your...?",
+        "meaning":  "~은 어땠어요?",
+        "literal":  "~은 어땠어요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "How would you like...?",
+        "meaning":  "~은 어떻게 해드릴까요?(마음에 드시겠습니까)",
+        "literal":  "~은 어떻게 해드릴까요?(마음에 드시겠습니까)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I can\u0027t believe...",
+        "meaning":  "~라니 믿을 수 없어요.",
+        "literal":  "~라니 믿을 수 없어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I can\u0027t figure out...",
+        "meaning":  "~를 모르겠어요. (고민해도 이해가 안됨.)",
+        "literal":  "~를 모르겠어요. (고민해도 이해가 안됨.)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I can\u0027t find...",
+        "meaning":  "~을 못 찾겠어요.",
+        "literal":  "~을 못 찾겠어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I can\u0027t say (that)...",
+        "meaning":  "~라고는 말할 수 없어요.",
+        "literal":  "~라고는 말할 수 없어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I can\u0027t stand...",
+        "meaning":  "~을 참을 수가 없어요.",
+        "literal":  "~을 참을 수가 없어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I can\u0027t stop...",
+        "meaning":  "~을 멈출 수가 없어요.",
+        "literal":  "~을 멈출 수가 없어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I can\u0027t tell you how...",
+        "meaning":  "얼마나 ~인지 말할 수 없어요.",
+        "literal":  "얼마나 ~인지 말할 수 없어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I can\u0027t think of...",
+        "meaning":  "~이 생각나지 않아요.(판단)",
+        "literal":  "~이 생각나지 않아요.(판단)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I can\u0027t understand why...",
+        "meaning":  "왜 ~인지 이해가 안 돼요.",
+        "literal":  "왜 ~인지 이해가 안 돼요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I can\u0027t wait to...",
+        "meaning":  "빨리 ~하고 싶어요.(강한 기대)",
+        "literal":  "빨리 ~하고 싶어요.(강한 기대)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I didn\u0027t mean to...",
+        "meaning":  "~할 의도는 아니었어요.",
+        "literal":  "~할 의도는 아니었어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I don\u0027t care...",
+        "meaning":  "~은 신경 안 써요. (상관없어)",
+        "literal":  "~은 신경 안 써요. (상관없어)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I don\u0027t feel like...",
+        "meaning":  "~할 기분이 아니에요.(직감)(~처럼 / 어떤 특징)",
+        "literal":  "~할 기분이 아니에요.(직감)(~처럼 / 어떤 특징)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I don\u0027t know how...",
+        "meaning":  "어떻게 ~하는지 모르겠어요.",
+        "literal":  "어떻게 ~하는지 모르겠어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I don\u0027t know if...",
+        "meaning":  "~인지 모르겠어요.",
+        "literal":  "~인지 모르겠어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I don\u0027t know why...",
+        "meaning":  "왜 ~인지 모르겠어요.",
+        "literal":  "왜 ~인지 모르겠어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I don\u0027t like it when...",
+        "meaning":  "~할 때가 싫어요.",
+        "literal":  "~할 때가 싫어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I don\u0027t mind...",
+        "meaning":  "~은 상관없어요. (괜찮아요/수용)",
+        "literal":  "~은 상관없어요. (괜찮아요/수용)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I don\u0027t think...",
+        "meaning":  "~인 것 같지 않아요.(판단)",
+        "literal":  "~인 것 같지 않아요.(판단)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I feel sorry for...",
+        "meaning":  "(동정,연민)~가 안됐어요.(직감)",
+        "literal":  "(동정,연민)~가 안됐어요.(직감)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I feel...",
+        "meaning":  "~한 기분이 들어요.(직감)",
+        "literal":  "~한 기분이 들어요.(직감)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I have done...",
+        "meaning":  "~을 다 했어요.",
+        "literal":  "~을 다 했어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I have to say...",
+        "meaning":  "~라는 말은 해야겠어요.(강제)",
+        "literal":  "~라는 말은 해야겠어요.(강제)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I just wanted to...",
+        "meaning":  "다만 ~하고 싶었을 뿐이에요.(욕구)",
+        "literal":  "다만 ~하고 싶었을 뿐이에요.(욕구)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I like your...",
+        "meaning":  "당신의 ~이 마음에 들어요.",
+        "literal":  "당신의 ~이 마음에 들어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I never thought...",
+        "meaning":  "~은 생각도 안 해 봤어요.",
+        "literal":  "~은 생각도 안 해 봤어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I need to...",
+        "meaning":  "~해야 해요.(현실적 필요)",
+        "literal":  "~해야 해요.(현실적 필요)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I need you to...",
+        "meaning":  "~해 줘야 해요.(현실적 필요)",
+        "literal":  "~해 줘야 해요.(현실적 필요)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I need...",
+        "meaning":  "~이 필요해요.(현실적 필요)",
+        "literal":  "~이 필요해요.(현실적 필요)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I really appreciate...",
+        "meaning":  "~에 진심으로 감사드려요.",
+        "literal":  "~에 진심으로 감사드려요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I should have p.p...",
+        "meaning":  "~했어야 했는데요.(권장)",
+        "literal":  "~했어야 했는데요.(권장)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I swear that...",
+        "meaning":  "~라고 맹세할게요.",
+        "literal":  "~라고 맹세할게요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I think I like...",
+        "meaning":  "~이 좋은 것 같아요.(판단)",
+        "literal":  "~이 좋은 것 같아요.(판단)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I think we need to...",
+        "meaning":  "우리 ~해야 할 것 같아요.(판단)(현실적 필요)",
+        "literal":  "우리 ~해야 할 것 같아요.(판단)(현실적 필요)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I think we\u0027d better...",
+        "meaning":  "내 생각엔 ~하는 게 좋을 것 같아요.(판단)",
+        "literal":  "내 생각엔 ~하는 게 좋을 것 같아요.(판단)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I think you should...",
+        "meaning":  "당신은 ~해야 할 것 같아요.(판단)(권장)",
+        "literal":  "당신은 ~해야 할 것 같아요.(판단)(권장)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I told you not to...",
+        "meaning":  "~하지 말라고 했잖아요.",
+        "literal":  "~하지 말라고 했잖아요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I want you to...",
+        "meaning":  "당신이 ~하면 좋겠어요.(욕구)",
+        "literal":  "당신이 ~하면 좋겠어요.(욕구)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I want...",
+        "meaning":  "~을 원해요.(욕구)",
+        "literal":  "~을 원해요.(욕구)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I was wondering if...",
+        "meaning":  "~인지 궁금했어요.",
+        "literal":  "~인지 궁금했어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I wish...",
+        "meaning":  "~면 좋을 텐데.(바람, 현실과 거리)",
+        "literal":  "~면 좋을 텐데.(바람, 현실과 거리)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I wonder...",
+        "meaning":  "~이 궁금해요.",
+        "literal":  "~이 궁금해요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I would appreciate it if you...",
+        "meaning":  "~해주신다면 감사하겠습니다.(완곡)",
+        "literal":  "~해주신다면 감사하겠습니다.(완곡)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027d like...",
+        "meaning":  "~하고 싶어요.(완곡)(마음에 드시겠습니까)",
+        "literal":  "~하고 싶어요.(완곡)(마음에 드시겠습니까)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027d like to...",
+        "meaning":  "~하고 싶어요.(완곡)(마음에 드시겠습니까)",
+        "literal":  "~하고 싶어요.(완곡)(마음에 드시겠습니까)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027d rather... than...",
+        "meaning":  "~하느니 차라리 ~할래요.(완곡)",
+        "literal":  "~하느니 차라리 ~할래요.(완곡)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "If I were you, I would...",
+        "meaning":  "내가 당신이라면 ~할 텐데요.(완곡)",
+        "literal":  "내가 당신이라면 ~할 텐데요.(완곡)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "If there\u0027s anything...",
+        "meaning":  "(필요한)~이 있다면",
+        "literal":  "(필요한)~이 있다면",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "If you don\u0027t mind, I\u0027d like to...",
+        "meaning":  "괜찮으시다면 ~하고 싶어요.(수용)(완곡)(마음에 드시겠습니까)",
+        "literal":  "괜찮으시다면 ~하고 싶어요.(수용)(완곡)(마음에 드시겠습니까)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "If you like...",
+        "meaning":  "당신만 좋다면 ~ (호감)(선호)",
+        "literal":  "당신만 좋다면 ~ (호감)(선호)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "If you need any...",
+        "meaning":  "~이 필요하면(현실적 필요)",
+        "literal":  "~이 필요하면(현실적 필요)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "If you want me to...",
+        "meaning":  "내가 ~하기를 원한다면(욕구)",
+        "literal":  "내가 ~하기를 원한다면(욕구)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027ll let you know...",
+        "meaning":  "~을 알려 줄게요.(의지)",
+        "literal":  "~을 알려 줄게요.(의지)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027ll thank you to...",
+        "meaning":  "~해 주시면 감사하겠습니다.(의지)",
+        "literal":  "~해 주시면 감사하겠습니다.(의지)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m afraid that...",
+        "meaning":  "유감스럽게도 ~인 것 같아요.",
+        "literal":  "유감스럽게도 ~인 것 같아요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m calling to...",
+        "meaning":  "~하려고 전화했어요.",
+        "literal":  "~하려고 전화했어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m glad (that)...",
+        "meaning":  "~해서 기뻐요.",
+        "literal":  "~해서 기뻐요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m here to...",
+        "meaning":  "~하러 왔어요.",
+        "literal":  "~하러 왔어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m in the middle of + 명사/동사-ing",
+        "meaning":  "한창 ~하는 중이에요.",
+        "literal":  "한창 ~하는 중이에요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m in...",
+        "meaning":  "~한 상태예요.",
+        "literal":  "~한 상태예요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m just about to...",
+        "meaning":  "막 ~하려던 참이에요.",
+        "literal":  "막 ~하려던 참이에요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m looking forward to + 명사/동사-ing",
+        "meaning":  "~이 기대돼요.",
+        "literal":  "~이 기대돼요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m not sure...",
+        "meaning":  "~인지 잘 모르겠어요.(확신)",
+        "literal":  "~인지 잘 모르겠어요.(확신)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m now able to...",
+        "meaning":  "이제 ~할 수 있어요.",
+        "literal":  "이제 ~할 수 있어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m on...",
+        "meaning":  "~중이에요.(그 활동/상태 위에 올라가 있다)",
+        "literal":  "~중이에요.(그 활동/상태 위에 올라가 있다)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m sorry about...",
+        "meaning":  "(가벼운)~해서 죄송해요.",
+        "literal":  "(가벼운)~해서 죄송해요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m sorry if...",
+        "meaning":  "(조건부)혹시 ~라면 죄송해요.",
+        "literal":  "(조건부)혹시 ~라면 죄송해요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m sorry that...",
+        "meaning":  "(사실에 대해)~라니 유감이에요",
+        "literal":  "(사실에 대해)~라니 유감이에요",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m sorry to hear that...",
+        "meaning":  "(소식에 대해)~라니 안됐네요.",
+        "literal":  "(소식에 대해)~라니 안됐네요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m sorry to say that...",
+        "meaning":  "~말씀드리게 되어 죄송해요.",
+        "literal":  "~말씀드리게 되어 죄송해요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m sorry to...",
+        "meaning":  "(지금행동)~해서 죄송해요.",
+        "literal":  "(지금행동)~해서 죄송해요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m sorry, but...",
+        "meaning":  "(거절)죄송하지만 ~",
+        "literal":  "(거절)죄송하지만 ~",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m sure that...",
+        "meaning":  "~라고 확신해요.(확신)",
+        "literal":  "~라고 확신해요.(확신)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m thinking about + ing...",
+        "meaning":  "~할까 생각 중이에요.(판단)",
+        "literal":  "~할까 생각 중이에요.(판단)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m trying to...",
+        "meaning":  "~하려고 노력 중이에요.",
+        "literal":  "~하려고 노력 중이에요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027m worried about...",
+        "meaning":  "~이 걱정이에요.",
+        "literal":  "~이 걱정이에요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Is it alright to...?",
+        "meaning":  "~해도 괜찮을까요?(행동자체)",
+        "literal":  "~해도 괜찮을까요?(행동자체)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Is it okay if...?",
+        "meaning":  "~하면 괜찮을까요?(상황전체)",
+        "literal":  "~하면 괜찮을까요?(상황전체)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Is it possible to...?",
+        "meaning":  "~하는 게 가능할까요?(시스템적, 현실적으로)",
+        "literal":  "~하는 게 가능할까요?(시스템적, 현실적으로)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Is it true that...?",
+        "meaning":  "~라는 게 정말이에요?",
+        "literal":  "~라는 게 정말이에요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Is there enough...?",
+        "meaning":  "~은 충분한가요?",
+        "literal":  "~은 충분한가요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "It doesn\u0027t matter to me...",
+        "meaning":  "~하든 상관없어요.",
+        "literal":  "~하든 상관없어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "It is said that...",
+        "meaning":  "~라고 해요.(라고 알려져 있음)",
+        "literal":  "~라고 해요.(라고 알려져 있음)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "It seems like...",
+        "meaning":  "~인 것 같아요.(~처럼 / 어떤 특징)",
+        "literal":  "~인 것 같아요.(~처럼 / 어떤 특징)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "It sounds like...",
+        "meaning":  "~처럼 들려요.(~처럼 / 어떤 특징)",
+        "literal":  "~처럼 들려요.(~처럼 / 어떤 특징)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "It\u0027s just...",
+        "meaning":  "그냥 ~일 뿐이에요.",
+        "literal":  "그냥 ~일 뿐이에요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "It\u0027s no use + ing...",
+        "meaning":  "~해도 소용없어요.",
+        "literal":  "~해도 소용없어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "It\u0027s no wonder...",
+        "meaning":  "~하는 것도 당연해요.",
+        "literal":  "~하는 것도 당연해요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "It\u0027s not like you to...",
+        "meaning":  "~하는 건 너답지 않아.(~처럼 / 어떤 특징)",
+        "literal":  "~하는 건 너답지 않아.(~처럼 / 어떤 특징)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "It\u0027s time to / for...",
+        "meaning":  "이제 ~할 시간이에요.",
+        "literal":  "이제 ~할 시간이에요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "It\u0027s worth + ing...",
+        "meaning":  "~할 만한 가치가 있어요.",
+        "literal":  "~할 만한 가치가 있어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027ve been thinking of...",
+        "meaning":  "~을 줄곧 생각해 왔어요.(판단)",
+        "literal":  "~을 줄곧 생각해 왔어요.(판단)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027ve been...",
+        "meaning":  "~해 왔어요.",
+        "literal":  "~해 왔어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027ve decided to...",
+        "meaning":  "~하기로 결정했어요.",
+        "literal":  "~하기로 결정했어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027ve got to...",
+        "meaning":  "~해야 해요!(강제)",
+        "literal":  "~해야 해요!(강제)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "I\u0027ve heard...",
+        "meaning":  "~라고 들었어요.",
+        "literal":  "~라고 들었어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Just let me…",
+        "meaning":  "좀 ~할게요.(해볼게요~)",
+        "literal":  "좀 ~할게요.(해볼게요~)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Let me check...",
+        "meaning":  "~확인해 볼게요.(해볼게요~)",
+        "literal":  "~확인해 볼게요.(해볼게요~)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Let me know...",
+        "meaning":  "~알려 주세요.(해볼게요~)",
+        "literal":  "~알려 주세요.(해볼게요~)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Let me see if...",
+        "meaning":  "~인지 볼게요.(해볼게요~)",
+        "literal":  "~인지 볼게요.(해볼게요~)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Let me tell you about...",
+        "meaning":  "~에 대해 말해 줄게요.(해볼게요~)",
+        "literal":  "~에 대해 말해 줄게요.(해볼게요~)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Let\u0027s not...",
+        "meaning":  "~하지 말자.(해볼게요~)",
+        "literal":  "~하지 말자.(해볼게요~)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Make sure that...",
+        "meaning":  "반드시 ~하도록 해.(확신)",
+        "literal":  "반드시 ~하도록 해.(확신)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Maybe we should...",
+        "meaning":  "아마 ~해야 할 것 같아요.(권장)",
+        "literal":  "아마 ~해야 할 것 같아요.(권장)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Mind...",
+        "meaning":  "~좀 신경 써.",
+        "literal":  "~좀 신경 써.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Never again will I...",
+        "meaning":  "다시는 ~하지 않을 거야.(의지)",
+        "literal":  "다시는 ~하지 않을 거야.(의지)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Promise me you will/won\u0027t...",
+        "meaning":  "~하겠다고/않겠다고 약속해.",
+        "literal":  "~하겠다고/않겠다고 약속해.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Sorry for not...",
+        "meaning":  "(과거행동)~못해서 죄송해요.",
+        "literal":  "(과거행동)~못해서 죄송해요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Thank you for...",
+        "meaning":  "~해 줘서 고마워요.",
+        "literal":  "~해 줘서 고마워요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "That\u0027s because...",
+        "meaning":  "그건 ~때문이에요.(원인 설명)",
+        "literal":  "그건 ~때문이에요.(원인 설명)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "That\u0027s no way to...",
+        "meaning":  "그런 식으로 ~하면 안 돼요.",
+        "literal":  "그런 식으로 ~하면 안 돼요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "That\u0027s the way...",
+        "meaning":  "그게 바로 ~하는 방법이에요.",
+        "literal":  "그게 바로 ~하는 방법이에요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "That\u0027s what...",
+        "meaning":  "그게 바로 ~이에요.",
+        "literal":  "그게 바로 ~이에요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "That\u0027s why...",
+        "meaning":  "그래서 ~한 거예요.(결과설명)",
+        "literal":  "그래서 ~한 거예요.(결과설명)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "The first thing we have to do is...",
+        "meaning":  "제일 먼저 할 일은 ~예요.(강제)",
+        "literal":  "제일 먼저 할 일은 ~예요.(강제)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "The last thing I want to do is...",
+        "meaning":  "~만은 정말 원하지 않아요.(욕구)",
+        "literal":  "~만은 정말 원하지 않아요.(욕구)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "There are so many...",
+        "meaning":  "~이 너무 많아요.",
+        "literal":  "~이 너무 많아요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "There goes + 명사",
+        "meaning":  "~도 물 건너갔군요.",
+        "literal":  "~도 물 건너갔군요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "There is always...",
+        "meaning":  "항상 ~이 있어요.",
+        "literal":  "항상 ~이 있어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "There is no need to...",
+        "meaning":  "~할 필요 없어요.(현실적 필요)",
+        "literal":  "~할 필요 없어요.(현실적 필요)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "There is no time to...",
+        "meaning":  "~할 시간이 없어요.",
+        "literal":  "~할 시간이 없어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "There is no way that...",
+        "meaning":  "~할 방법이 없어요 / ~일 리 없어요.",
+        "literal":  "~할 방법이 없어요 / ~일 리 없어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "There is nothing...",
+        "meaning":  "~할 것은 없어요.",
+        "literal":  "~할 것은 없어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "There must be...",
+        "meaning":  "분명히 ~가 있을 거예요.",
+        "literal":  "분명히 ~가 있을 거예요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "There seems to be...",
+        "meaning":  "~이 있는 것 같아요.",
+        "literal":  "~이 있는 것 같아요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "There will be...",
+        "meaning":  "~이 있을 거예요.(의지)",
+        "literal":  "~이 있을 거예요.(의지)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "We\u0027re looking to...",
+        "meaning":  "우리는 ~하려고 해요.",
+        "literal":  "우리는 ~하려고 해요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "What (has) happened to...?",
+        "meaning":  "~에 무슨 일이 생긴 거예요?",
+        "literal":  "~에 무슨 일이 생긴 거예요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "What about...?",
+        "meaning":  "~는 어때?(다른 선택지 제시)",
+        "literal":  "~는 어때?(다른 선택지 제시)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "What do I have to...?",
+        "meaning":  "뭘 ~해야 하나요?(강제)",
+        "literal":  "뭘 ~해야 하나요?(강제)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "What do you mean...?",
+        "meaning":  "~라는 게 무슨 뜻이에요?",
+        "literal":  "~라는 게 무슨 뜻이에요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "What do you say...?",
+        "meaning":  "~하는 거 어때?(같이 하자는 제안)",
+        "literal":  "~하는 거 어때?(같이 하자는 제안)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "What do you think of...?",
+        "meaning":  "~에 대해 어떻게 생각해요?(판단)",
+        "literal":  "~에 대해 어떻게 생각해요?(판단)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "What do you want to...?",
+        "meaning":  "뭘 ~하고 싶어요?(욕구)",
+        "literal":  "뭘 ~하고 싶어요?(욕구)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "What if...?",
+        "meaning":  "(만약에) ~하면 어쩌죠?",
+        "literal":  "(만약에) ~하면 어쩌죠?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "What is/are ... like?",
+        "meaning":  "~은 어떤가요?(~처럼 / 어떤 특징)",
+        "literal":  "~은 어떤가요?(~처럼 / 어떤 특징)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "What kind of...?",
+        "meaning":  "어떤 종류의 ~?",
+        "literal":  "어떤 종류의 ~?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "What makes you...?",
+        "meaning":  "왜 ~하나요?(근거가 뭐야?)",
+        "literal":  "왜 ~하나요?(근거가 뭐야?)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "What should I...?",
+        "meaning":  "뭘 ~해야 하죠?(권장)",
+        "literal":  "뭘 ~해야 하죠?(권장)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "What would you like to...?",
+        "meaning":  "무엇을 ~하고 싶어요?(마음에 드시겠습니까)",
+        "literal":  "무엇을 ~하고 싶어요?(마음에 드시겠습니까)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "What\u0027s the best way to...?",
+        "meaning":  "~할 가장 좋은 방법이 뭐예요?",
+        "literal":  "~할 가장 좋은 방법이 뭐예요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "When did you...?",
+        "meaning":  "언제 ~했어요?",
+        "literal":  "언제 ~했어요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "When do you plan to...?",
+        "meaning":  "언제 ~할 계획이에요?",
+        "literal":  "언제 ~할 계획이에요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "When was the last time...?",
+        "meaning":  "마지막으로 ~한 게 언제죠?",
+        "literal":  "마지막으로 ~한 게 언제죠?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "When would be a good time...?",
+        "meaning":  "언제가 좋을까요?",
+        "literal":  "언제가 좋을까요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Where can I...?",
+        "meaning":  "어디서 ~할 수 있어요?",
+        "literal":  "어디서 ~할 수 있어요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Where did you...?",
+        "meaning":  "어디서 ~했어요?",
+        "literal":  "어디서 ~했어요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Where would you like to...?",
+        "meaning":  "어디로 ~하고 싶어요?(마음에 드시겠습니까)",
+        "literal":  "어디로 ~하고 싶어요?(마음에 드시겠습니까)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Where\u0027s the best place to...?",
+        "meaning":  "~하기에 가장 좋은 곳이 어디죠?",
+        "literal":  "~하기에 가장 좋은 곳이 어디죠?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Where\u0027s the nearest...?",
+        "meaning":  "가장 가까운 ~이 어디죠?",
+        "literal":  "가장 가까운 ~이 어디죠?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Which do you like better...?",
+        "meaning":  "어느 쪽이 더 좋아요?",
+        "literal":  "어느 쪽이 더 좋아요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Which one do you...?",
+        "meaning":  "어느 쪽을 ~하나요?",
+        "literal":  "어느 쪽을 ~하나요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Which way...?",
+        "meaning":  "어느 쪽인가요?",
+        "literal":  "어느 쪽인가요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Who is your...?",
+        "meaning":  "당신의 ~은 누구예요?",
+        "literal":  "당신의 ~은 누구예요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Who wants to...?",
+        "meaning":  "~하고 싶은 사람?(욕구)",
+        "literal":  "~하고 싶은 사람?(욕구)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Who\u0027s going to...?",
+        "meaning":  "누가 ~할 거예요?(예정)",
+        "literal":  "누가 ~할 거예요?(예정)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Why are you so...?",
+        "meaning":  "왜 그렇게 ~해요?",
+        "literal":  "왜 그렇게 ~해요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Why do you...?",
+        "meaning":  "왜 ~해요?",
+        "literal":  "왜 ~해요?",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Why don\u0027t you...?",
+        "meaning":  "~해보는 게 어때?(해결책·조언)",
+        "literal":  "~해보는 게 어때?(해결책·조언)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Would you care for...?",
+        "meaning":  "~드시겠어요?(완곡)(고급)",
+        "literal":  "~드시겠어요?(완곡)(고급)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Would you like to...?",
+        "meaning":  "~하시겠어요?(완곡)(마음에 드시겠습니까)",
+        "literal":  "~하시겠어요?(완곡)(마음에 드시겠습니까)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Would you like...?",
+        "meaning":  "~하시겠어요? / 드릴까요?(완곡) (마음에 드시겠습니까)",
+        "literal":  "~하시겠어요? / 드릴까요?(완곡) (마음에 드시겠습니까)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "Would you mind...?",
+        "meaning":  "~해도 될까요?(완곡)(수용)",
+        "literal":  "~해도 될까요?(완곡)(수용)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "You don\u0027t even...",
+        "meaning":  "당신은 ~조차 않잖아요.",
+        "literal":  "당신은 ~조차 않잖아요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "You don\u0027t have to...",
+        "meaning":  "~하지 않아도 돼요.(강제)",
+        "literal":  "~하지 않아도 돼요.(강제)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "You don\u0027t know how...",
+        "meaning":  "얼마나 ~한지 몰라요.",
+        "literal":  "얼마나 ~한지 몰라요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "You don\u0027t need to...",
+        "meaning":  "~할 필요 없어요.(현실적 필요)",
+        "literal":  "~할 필요 없어요.(현실적 필요)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "You look like...",
+        "meaning":  "~처럼 보여요.(~처럼 / 어떤 특징)",
+        "literal":  "~처럼 보여요.(~처럼 / 어떤 특징)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "You look...",
+        "meaning":  "~해 보여요.",
+        "literal":  "~해 보여요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "You should try to…",
+        "meaning":  "~하도록 (노력/시도) 해.(권장)",
+        "literal":  "~하도록 (노력/시도) 해.(권장)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "You shouldn\u0027t...",
+        "meaning":  "~하면 안 돼요.(권장)",
+        "literal":  "~하면 안 돼요.(권장)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "You\u0027d better not...",
+        "meaning":  "~하지 않는 게 좋겠어요.",
+        "literal":  "~하지 않는 게 좋겠어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "You\u0027d better...",
+        "meaning":  "~하는 게 좋겠어요.",
+        "literal":  "~하는 게 좋겠어요.",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    },
+    {
+        "word":  "You\u0027ll have to...",
+        "meaning":  "~해야 할 거예요.(강제)",
+        "literal":  "~해야 할 거예요.(강제)",
+        "example":  "",
+        "level":  "0",
+        "tag":  "패턴",
+        "memo":  "",
+        "qaHistory":  "",
+        "knownCount":  "0",
+        "unknownCount":  "0",
+        "lastReviewed":  "",
+        "updatedAt":  ""
+    }
+]</script>
+    <script>
+      const PROGRESS_KEY = "wordLeveler.mobileProgress.v1";
+      const progress = loadProgress();
+      const words = JSON.parse(document.getElementById("word-data").textContent).map(normalizeWord);
+      applySavedProgress();
+      const state = {
+        levels: new Set([0, 1, 2, 3, 4, 5]),
+        rangeValue: "all",
+        queue: [],
+        index: 0,
+        showHint: false,
+        known: 0,
+        unknown: 0,
+        swipeStartX: null,
+        swipeStartY: null,
+        hintTapStartX: null,
+        hintTapStartY: null,
+        lastHintTouchToggleAt: 0,
+      };
+
+      const $ = (id) => document.getElementById(id);
+
+      document.addEventListener("DOMContentLoaded", () => {
+        $("totalCount").textContent = words.length;
+        applyDefaultSettings();
+        renderLevelChecks();
+        renderRangeOptions();
+        renderDashboard();
+        bindEvents();
+        restoreSettings();
+        updateEligibleCount();
+      });
+
+      function bindEvents() {
+        $("startBtn").addEventListener("click", startStudy);
+        $("homeBtn").addEventListener("click", () => showView("setupView"));
+        $("resultHomeBtn").addEventListener("click", () => showView("setupView"));
+        $("againBtn").addEventListener("click", startStudy);
+        $("knownBtn").addEventListener("click", () => answer(true));
+        $("unknownBtn").addEventListener("click", () => answer(false));
+        $("hintBtn").addEventListener("click", toggleHint);
+        $("prevBtn").addEventListener("click", previousCard);
+        $("nextBtn").addEventListener("click", nextCard);
+        $("hintToggleArea").addEventListener("click", toggleHintFromAreaClick);
+        $("hintToggleArea").addEventListener("touchstart", handleHintAreaTouchStart, { passive: true });
+        $("hintToggleArea").addEventListener("touchend", handleHintAreaTouchEnd, { passive: true });
+        $("studyCard").addEventListener("touchstart", handleStudyTouchStart, { passive: true });
+        $("studyCard").addEventListener("touchend", handleStudyTouchEnd, { passive: true });
+        ["studyCount", "rangeSelect", "order", "direction", "fontSize"].forEach((id) => $(id).addEventListener("change", () => {
+          if (id === "rangeSelect") state.rangeValue = $("rangeSelect").value;
+          saveSettings();
+          updateEligibleCount();
+        }));
+      }
+
+      function applyDefaultSettings() {
+        $("studyCount").value = "30";
+        $("rangeSelect").value = "all";
+        state.rangeValue = "all";
+        $("order").value = "random";
+        $("direction").value = "meaningToWord";
+        $("fontSize").value = "medium";
+      }
+
+      function normalizeWord(row) {
+        return {
+          word: row.word || "",
+          meaning: row.meaning || "",
+          literal: row.literal || "",
+          example: row.example || "",
+          level: clampNumber(row.level, 0, 5),
+          baseLevel: clampNumber(row.level, 0, 5),
+          tag: row.tag || "",
+          memo: row.memo || "",
+          correctCount: 0,
+          wrongCount: 0,
+        };
+      }
+
+      function wordKey(word) {
+        return word.word || `${word.meaning}|${word.literal}`;
+      }
+
+      function loadProgress() {
+        try {
+          return JSON.parse(localStorage.getItem(PROGRESS_KEY) || "{}");
+        } catch (error) {
+          return {};
+        }
+      }
+
+      function applySavedProgress() {
+        words.forEach((word) => {
+          const saved = progress[wordKey(word)];
+          if (!saved) return;
+          word.level = clampNumber(saved.level, 0, 5);
+          word.correctCount = clampNumber(saved.correctCount, 0, 999999);
+          word.wrongCount = clampNumber(saved.wrongCount, 0, 999999);
+        });
+      }
+
+      function saveProgressForWord(word) {
+        progress[wordKey(word)] = {
+          level: word.level,
+          correctCount: word.correctCount,
+          wrongCount: word.wrongCount,
+          updatedAt: new Date().toISOString(),
+        };
+        try {
+          localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+        } catch (error) {}
+        renderDashboard();
+      }
+
+      function renderLevelChecks() {
+        $("levelChecks").innerHTML = "";
+        for (let level = 0; level <= 5; level += 1) {
+          const label = document.createElement("label");
+          label.innerHTML = `<input type="checkbox" value="${level}" checked /><span>Level ${level}</span>`;
+          label.querySelector("input").addEventListener("change", (event) => {
+            if (event.target.checked) state.levels.add(level);
+            else state.levels.delete(level);
+            saveSettings();
+            updateEligibleCount();
+          });
+          $("levelChecks").appendChild(label);
+        }
+      }
+
+      function renderRangeOptions() {
+        const select = $("rangeSelect");
+        select.innerHTML = "";
+        const all = document.createElement("option");
+        all.value = "all";
+        all.textContent = "전체";
+        select.appendChild(all);
+
+        for (let start = 0; start < words.length; start += 100) {
+          const end = Math.min(words.length, start + 100);
+          const option = document.createElement("option");
+          option.value = `${start}:${end}`;
+          option.textContent = `${start + 1}~${end}`;
+          select.appendChild(option);
+        }
+      }
+
+      function setLevelPreset(value) {
+        const levels = value === "all" ? [0, 1, 2, 3, 4, 5] : value.split(",").map(Number);
+        state.levels = new Set(levels);
+        document.querySelectorAll("#levelChecks input").forEach((input) => {
+          input.checked = state.levels.has(Number(input.value));
+        });
+        saveSettings();
+        updateEligibleCount();
+      }
+
+      function eligibleWords() {
+        let start = 0;
+        let end = words.length;
+        if (state.rangeValue !== "all") {
+          const parts = String(state.rangeValue).split(":").map(Number);
+          start = Number.isFinite(parts[0]) ? parts[0] : 0;
+          end = Number.isFinite(parts[1]) ? parts[1] : words.length;
+        }
+        return words
+          .map((word, index) => ({ word, index }))
+          .filter(({ word, index }) => index >= start && index < end && state.levels.has(word.level));
+      }
+
+      function updateEligibleCount() {
+        $("eligibleCount").textContent = `출제 가능: ${eligibleWords().length}개`;
+      }
+
+      function renderDashboard() {
+        const levelCounts = Array.from({ length: 6 }, () => 0);
+        let todayReviewed = 0;
+        const today = new Date();
+        const todayKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+
+        Object.values(progress).forEach((entry) => {
+          const level = clampNumber(entry.level, 0, 5);
+          levelCounts[level] += 1;
+          if (entry.updatedAt) {
+            const updated = new Date(entry.updatedAt);
+            const updatedKey = `${updated.getFullYear()}-${updated.getMonth()}-${updated.getDate()}`;
+            if (updatedKey === todayKey) todayReviewed += 1;
+          }
+        });
+
+        const untouched = Math.max(0, words.length - levelCounts.reduce((sum, count) => sum + count, 0));
+        levelCounts[0] += untouched;
+
+        $("statTotal").textContent = String(words.length);
+        $("statLevel5").textContent = String(levelCounts[5]);
+        $("statToday").textContent = String(todayReviewed);
+
+        const maxCount = Math.max(...levelCounts, 1);
+        $("distribution").innerHTML = levelCounts.map((count, level) => `
+          <div class="distribution-row">
+            <label>Level ${level}</label>
+            <div class="distribution-bar"><div class="distribution-fill" style="width:${(count / maxCount) * 100}%"></div></div>
+            <span class="count">${count}</span>
+          </div>
+        `).join("");
+      }
+
+      function startStudy() {
+        saveSettings();
+        let queue = eligibleWords();
+        const order = $("order").value;
+        if (order === "random") queue = shuffle(queue);
+        if (order === "low") queue.sort((a, b) => a.word.level - b.word.level);
+        if (order === "high") queue.sort((a, b) => b.word.level - a.word.level);
+
+        const count = clampNumber($("studyCount").value, 1, queue.length || 1);
+        queue = queue.slice(0, count);
+        if (!queue.length) {
+          alert("선택 조건에 맞는 단어가 없습니다.");
+          return;
+        }
+
+        state.queue = queue;
+        state.index = 0;
+        state.showHint = false;
+        state.known = 0;
+        state.unknown = 0;
+        showView("studyView");
+        renderCard();
+      }
+
+      function renderCard() {
+        const entry = state.queue[state.index];
+        if (!entry) return finishStudy();
+
+        const word = words[entry.index];
+        const meaningToWord = $("direction").value === "meaningToWord";
+        $("studyCard").className = `card study-card font-${$("fontSize").value}`;
+        $("progress").textContent = `${state.index + 1} / ${state.queue.length}`;
+        $("levelText").textContent = `Level ${word.level} / 5`;
+        $("sessionText").textContent = `정답 ${state.known} · 오답 ${state.unknown} · 누적 ${word.correctCount}/${word.wrongCount}`;
+        $("frontText").textContent = meaningToWord ? word.meaning : word.word;
+        $("answerLabel").textContent = meaningToWord ? "영어" : "뜻";
+        $("answerText").textContent = meaningToWord ? word.word : word.meaning;
+        setBlock("literalBlock", "literalText", word.literal);
+        setBlock("tagBlock", "tagText", word.tag);
+        setBlock("exampleBlock", "exampleText", word.example);
+        setBlock("memoBlock", "memoText", word.memo);
+        $("answerBox").classList.toggle("is-collapsed", !state.showHint);
+        $("prevBtn").disabled = state.index === 0;
+        $("nextBtn").disabled = state.index >= state.queue.length - 1;
+      }
+
+      function setBlock(blockId, textId, value) {
+        $(textId).textContent = value || "-";
+        $(blockId).style.display = value ? "block" : "none";
+      }
+
+      function answer(isKnown) {
+        const entry = state.queue[state.index];
+        if (!entry) return;
+        const word = words[entry.index];
+
+        if (isKnown) {
+          state.known += 1;
+          word.correctCount += 1;
+          word.level = Math.min(5, word.level + 1);
+        } else {
+          state.unknown += 1;
+          word.wrongCount += 1;
+          word.level = Math.max(0, word.level - 1);
+        }
+
+        saveProgressForWord(word);
+        state.index += 1;
+        state.showHint = false;
+        renderCard();
+      }
+
+      function toggleHint() {
+        state.showHint = !state.showHint;
+        renderCard();
+      }
+
+      function toggleHintFromAreaClick(event) {
+        if (event.target.closest("button")) return;
+        if (Date.now() - state.lastHintTouchToggleAt < 450) return;
+        state.showHint = !state.showHint;
+        renderCard();
+      }
+
+      function handleHintAreaTouchStart(event) {
+        if (!event.changedTouches || !event.changedTouches.length) return;
+        if (event.target.closest("button")) return;
+        const touch = event.changedTouches[0];
+        state.hintTapStartX = touch.clientX;
+        state.hintTapStartY = touch.clientY;
+      }
+
+      function handleHintAreaTouchEnd(event) {
+        if (state.hintTapStartX === null || state.hintTapStartY === null) return resetHintTap();
+        if (!event.changedTouches || !event.changedTouches.length) return resetHintTap();
+        if (event.target.closest("button")) return resetHintTap();
+
+        const touch = event.changedTouches[0];
+        const deltaX = touch.clientX - state.hintTapStartX;
+        const deltaY = touch.clientY - state.hintTapStartY;
+        resetHintTap();
+
+        if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) return;
+        state.lastHintTouchToggleAt = Date.now();
+        state.showHint = !state.showHint;
+        renderCard();
+      }
+
+      function handleStudyTouchStart(event) {
+        if (!event.changedTouches || !event.changedTouches.length) return;
+        if (event.target.closest("button")) return;
+        const touch = event.changedTouches[0];
+        state.swipeStartX = touch.clientX;
+        state.swipeStartY = touch.clientY;
+      }
+
+      function handleStudyTouchEnd(event) {
+        if (state.swipeStartX === null || state.swipeStartY === null) return;
+        if (!event.changedTouches || !event.changedTouches.length) return resetSwipe();
+        if (event.target.closest("button")) return resetSwipe();
+
+        const touch = event.changedTouches[0];
+        const deltaX = touch.clientX - state.swipeStartX;
+        const deltaY = touch.clientY - state.swipeStartY;
+        resetSwipe();
+
+        if (Math.abs(deltaX) < 72) return;
+        if (Math.abs(deltaY) > 54) return;
+
+        if (deltaX > 0) answer(true);
+        else answer(false);
+      }
+
+      function resetSwipe() {
+        state.swipeStartX = null;
+        state.swipeStartY = null;
+      }
+
+      function resetHintTap() {
+        state.hintTapStartX = null;
+        state.hintTapStartY = null;
+      }
+
+      function previousCard() {
+        if (state.index <= 0) return;
+        state.index -= 1;
+        state.showHint = false;
+        renderCard();
+      }
+
+      function nextCard() {
+        if (state.index >= state.queue.length - 1) return finishStudy();
+        state.index += 1;
+        state.showHint = false;
+        renderCard();
+      }
+
+      function finishStudy() {
+        $("resultTotal").textContent = `${state.known + state.unknown}개`;
+        $("resultSummary").textContent = `정답 ${state.known}개 · 오답 ${state.unknown}개`;
+        showView("resultView");
+      }
+
+      function showView(id) {
+        document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === id));
+        document.body.classList.toggle("study-locked", id === "studyView");
+        window.scrollTo({ top: 0, behavior: "instant" });
+      }
+
+      function shuffle(items) {
+        const copied = [...items];
+        for (let i = copied.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copied[i], copied[j]] = [copied[j], copied[i]];
+        }
+        return copied;
+      }
+
+      function clampNumber(value, min, max) {
+        const number = Number.parseInt(value, 10);
+        if (Number.isNaN(number)) return min;
+        return Math.min(max, Math.max(min, number));
+      }
+
+      function saveSettings() {
+        try {
+          localStorage.setItem("wordLeveler.mobileSettings.v1", JSON.stringify({
+            levels: Array.from(state.levels),
+            studyCount: $("studyCount").value,
+            rangeValue: $("rangeSelect").value,
+            order: $("order").value,
+            direction: $("direction").value,
+            fontSize: $("fontSize").value,
+          }));
+        } catch (error) {}
+      }
+
+      function restoreSettings() {
+        try {
+          const saved = JSON.parse(localStorage.getItem("wordLeveler.mobileSettings.v1") || "null");
+          if (!saved) return;
+          if (Array.isArray(saved.levels) && saved.levels.length) setLevelPreset(saved.levels.join(","));
+          if (saved.studyCount) $("studyCount").value = saved.studyCount;
+          if (saved.rangeValue) {
+            $("rangeSelect").value = saved.rangeValue;
+            state.rangeValue = saved.rangeValue;
+          }
+          if (saved.order) $("order").value = saved.order;
+          if (saved.direction) $("direction").value = saved.direction;
+          if (saved.fontSize) $("fontSize").value = saved.fontSize;
+        } catch (error) {}
+        renderDashboard();
+      }
+    </script>
+  </body>
+</html>
+
+
+
+
+
+
+
